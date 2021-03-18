@@ -57,7 +57,7 @@ class DerivedStatePredictor(StatePredictor):
             m = np.linalg.norm(dir)
             if m > 0:
                 dir /= m
-            vel += (action[0] + action[6]) * forward * 1000 + action[5] * dir * 100
+            vel += (action[0] + action[6]/100) * forward * 1000 + action[5] * dir * 100
             m = np.linalg.norm(vel)
             if m >= 2350:
                 vel *= 2350 / m

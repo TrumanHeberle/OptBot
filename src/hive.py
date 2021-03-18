@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 from rlbot.utils.structures.bot_input_struct import PlayerInput
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlbot.agents.hivemind.python_hivemind import PythonHivemind
@@ -23,9 +23,10 @@ class OptBotHivemind(PythonHivemind):
         self.scorer = BallChaserScorer()
         self.predictor = DerivedStatePredictor()
 
-    def choose_action(self, state: np.ndarray, dt: float) -> Dict[int, PlayerInput]:
-        """Chooses a decision for the action of each drone."""
-        actions = {}
+    def choose_action(self, state: np.ndarray, dt: float) -> List[np.ndarray]:
+        """Chooses a decision for the action of each drone. Returns a list of
+        bot actions in order of drone indices."""
+        actions = []
         # select best possible action per bot
         for i in self.drone_indices:
             # instantiate decision tree
@@ -36,7 +37,7 @@ class OptBotHivemind(PythonHivemind):
             dtree = DecisionTree(state, C.ACTIONS, brancher, self.scorer.score)
             # determine best case action
             dtree.branch()
-            actions[i] = dtree.ideal_key()
+            actions.append(dtree.ideal_key())
         return actions
 
     def get_outputs(self, state: GameTickPacket) -> Dict[int, PlayerInput]:
@@ -49,7 +50,7 @@ class OptBotHivemind(PythonHivemind):
             self.actions = self.choose_action(current_state, C.DT)
             self.state_history.store(current_state, self.actions, state.game_info.seconds_elapsed)
             # uncondense actions for RLBot API
-            self.actions = {i:expand_action(self.actions[i]) for i in self.actions}
+            self.actions = {dindex:expand_action(self.actions[i]) for dindex, i in enumerate(self.drone_indices)}
         else:
             # round was interrupted, restart data capture
             self.state_history.conclude()

@@ -1,4 +1,4 @@
-from typing import Set
+from typing import Set, List
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlbot.utils.structures.bot_input_struct import PlayerInput
 import numpy as np
@@ -61,10 +61,10 @@ class StateStorage:
         self.timestamps = []
     def __len__(self):
         return self.total_states
-    def store(self, state, action, timestamp: float) -> None:
+    def store(self, state: np.ndarray, actions: List[np.ndarray], timestamp: float) -> None:
         """Stores a frame into the immediate state chain"""
         self.states.append(state)
-        self.actions.append(action)
+        self.actions.append(actions)
         self.timestamps.append(timestamp)
         self.total_states += 1
     def conclude(self):
