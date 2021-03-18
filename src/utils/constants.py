@@ -35,6 +35,6 @@ BACKWARD_LEFT_BRAKE         = reduce_action(PlayerInput(-1,-1,1,1,0,0,0,1))
 
 # ACTION SET
 # limits the bot to choose from this subset of actions
-DECISIONS = [
+ACTIONS = [
     FORWARD, FORWARD_RIGHT, FORWARD_LEFT, BACKWARD, BACKWARD_RIGHT, BACKWARD_LEFT
 ]

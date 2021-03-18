@@ -17,30 +17,18 @@ def reduce_state(state: GameTickPacket, drone_indices: Set[int], enemy_indices: 
         ball.location.x, ball.location.y, ball.location.z,
         # game ball velocity [3:6]
         ball.velocity.x, ball.velocity.y, ball.velocity.z,
-        # drone locations (in order) [6:9] [9:12] [12:15]
+        # drone locations (in order) [6:9]
         drones[0].physics.location.x, drones[0].physics.location.y, drones[0].physics.location.z,
-        drones[1].physics.location.x, drones[1].physics.location.y, drones[1].physics.location.z,
-        drones[2].physics.location.x, drones[2].physics.location.y, drones[2].physics.location.z,
-        # enemy locations (in order) [15:18] [18:21] [21:24]
+        # enemy locations (in order) [9:12]
         enemies[0].physics.location.x, enemies[0].physics.location.y, enemies[0].physics.location.z,
-        enemies[1].physics.location.x, enemies[1].physics.location.y, enemies[1].physics.location.z,
-        enemies[2].physics.location.x, enemies[2].physics.location.y, enemies[2].physics.location.z,
-        # drone velocities (in order) [24:27] [27:30] [30:33]
+        # drone velocities (in order) [12:15]
         drones[0].physics.velocity.x, drones[0].physics.velocity.y, drones[0].physics.velocity.z,
-        drones[1].physics.velocity.x, drones[1].physics.velocity.y, drones[1].physics.velocity.z,
-        drones[2].physics.velocity.x, drones[2].physics.velocity.y, drones[2].physics.velocity.z,
-        # enemy velocity (in order) [33:36] [36:39] [39:42]
+        # enemy velocity (in order) [15:18]
         enemies[0].physics.velocity.x, enemies[0].physics.velocity.y, enemies[0].physics.velocity.z,
-        enemies[1].physics.velocity.x, enemies[1].physics.velocity.y, enemies[1].physics.velocity.z,
-        enemies[2].physics.velocity.x, enemies[2].physics.velocity.y, enemies[2].physics.velocity.z,
-        # drone rotations (in order) [42:45] [45:48] [48:51]
+        # drone rotations (in order) [18:21]
         drones[0].physics.rotation.pitch, drones[0].physics.rotation.yaw, drones[0].physics.rotation.roll,
-        drones[1].physics.rotation.pitch, drones[1].physics.rotation.yaw, drones[1].physics.rotation.roll,
-        drones[2].physics.rotation.pitch, drones[2].physics.rotation.yaw, drones[2].physics.rotation.roll,
-        # enemy rotations (in order) [51:54] [54:57] [57:60]
+        # enemy rotations (in order) [21:24]
         enemies[0].physics.rotation.pitch, enemies[0].physics.rotation.yaw, enemies[0].physics.rotation.roll,
-        enemies[1].physics.rotation.pitch, enemies[1].physics.rotation.yaw, enemies[1].physics.rotation.roll,
-        enemies[2].physics.rotation.pitch, enemies[2].physics.rotation.yaw, enemies[2].physics.rotation.roll,
     ])
 
 def reduce_action(action: PlayerInput) -> np.ndarray:
