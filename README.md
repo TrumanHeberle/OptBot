@@ -33,3 +33,9 @@ src/utils : contains all source code for utility classes/functions/values
 src/utils/constants.py : contains all constant variables and settings
 
 src/utils/state.py : contains utilities for interacting and storing game state data
+
+src/utils/predictor.py : contains code for managing state predictors
+
+src/utils/scorer.py : contains code for managing state scorers
+
+src/utils/decision.py : contains code implementing an arbitrary decision tree algorithm
