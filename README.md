@@ -6,7 +6,7 @@ optimally play the game Rocket League.
 Install Rocket League
 https://www.epicgames.com/store/en-US/p/rocket-league
 
-Install RLBot gui
+Install RLBot GUI
 https://www.youtube.com/watch?v=oXkbizklI2U
 
 Install Python 3
@@ -16,6 +16,17 @@ https://www.python.org/downloads/
 Install NumPy
 https://numpy.org/install/
 - recommended using pip installation
+
+## Setup
+Once all of the prerequisite requirements are met (above) you run the RLBot GUI.
+In order to enable this bot you must load the folder where you clone this
+repository using the RLBot GUI. I would recommend cloning the repository into
+the default RLBot bot folder which can be found by clicking the button labeled
+"Manage bot folders" and copying the path ending with the folder "MyBots".
+
+Some match settings that are recommended would be enabling rendering, skip
+replays, and instant start. One setting which must remain off is enabling
+lockstep as this leads to improper packet timestamps.
 
 ## File Information
 appearance.cfg : controls the bot appearances (mostly unimportant except for car type)
