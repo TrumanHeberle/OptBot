@@ -32,7 +32,7 @@ class DerivedStatePredictor(StatePredictor):
             pos = next_state[6+3*i:9+3*i]
             vel = next_state[12+3*i:15+3*i]
             # update rotation
-            yaw += action[3] * (1 + 0.025 * action[6]) * np.linalg.norm(vel) / 1000 * dt
+            yaw += action[3] * (1 + 0.025 * action[6] + 0.25 * action[7] * action[1] * action[0]) * np.linalg.norm(vel) / 1000 * dt
             pitch += action[2] * (1 + 0.025 * action[6]) * np.linalg.norm(vel) / 1000 * dt
             roll += action[4] * (1 + 0.025 * action[6]) * np.linalg.norm(vel) / 1000 * dt
             yaw = (yaw + pi) % (2 * pi) - pi
@@ -51,13 +51,13 @@ class DerivedStatePredictor(StatePredictor):
             rmat = np.matrix([[cp*cy, cy*sp*sr-cr*sy, -cr*cy*sp-sr*sy],
                 [cp*sy, cr*cy+sp*sr*sy, cy*sr-cr*sp*sy],[sp, -cp*sr, cp*cr]])
             forward = np.squeeze(np.asarray(np.matmul(rmat,np.array([1,0,0]))))
-            dir = np.squeeze(np.asarray(np.matmul(rmat,np.array([0,0,1]))))
-            dir += np.squeeze(np.asarray(np.matmul(rmat,np.array([0,1,0])))) * action[1]
-            dir += forward * action[0]
+            up = np.squeeze(np.asarray(np.matmul(rmat,np.array([0,0,1]))))
+            right = np.squeeze(np.asarray(np.matmul(rmat,np.array([0,1,0]))))
+            dir = up + right * action[1] + forward * action[0]
             m = np.linalg.norm(dir)
             if m > 0:
                 dir /= m
-            vel += (action[0] + action[6]/100) * forward * 1000 + action[5] * dir * 100
+            vel += (action[0] - action[7] + action[6]/100) * (100 * forward + action[2] * right)
             m = np.linalg.norm(vel)
             if m >= 2350:
                 vel *= 2350 / m

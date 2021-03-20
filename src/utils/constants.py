@@ -4,7 +4,9 @@ from utils.state import reduce_action
 ### THIS FILE CONTAINS USEFUL CONSTANTS
 
 # SETTINGS
-DT = 0.08;  # elapsed time between state predictor updates
+DT = 0.08;      # elapsed time between state predictor updates
+TIMESTEPS = 1;  # number of timesteps in advance for decision tree
+NUM_RETAIN = 5; # number of paths to retain when pruning the decision tree
 
 # ACTIONS
 # throttle, steer, pitch, yaw, roll (-1,0,1) jump, boost, handbrake (0,1)
@@ -37,5 +39,6 @@ BACKWARD_LEFT_BRAKE         = reduce_action(PlayerInput(-1,-1,1,1,0,0,0,1))
 # limits the bot to choose from this subset of actions
 ACTIONS = [
     FORWARD, FORWARD_RIGHT, FORWARD_LEFT, BACKWARD, BACKWARD_RIGHT, BACKWARD_LEFT,
-    FORWARD_BOOST, FORWARD_RIGHT_BOOST, FORWARD_LEFT_BOOST
+    FORWARD_BOOST, FORWARD_RIGHT_BOOST, FORWARD_LEFT_BOOST, FORWARD_RIGHT_BRAKE,
+    FORWARD_LEFT_BRAKE
 ]

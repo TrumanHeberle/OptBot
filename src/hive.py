@@ -8,6 +8,7 @@ from utils.state import reduce_state, reduce_action, expand_action, StateStorage
 from utils.scorer import BallChaserScorer
 from utils.predictor import DerivedStatePredictor
 from utils.decision import DecisionTree
+from time import time
 
 ### THIS FILE CONTAINS CODE TO CONTROL A NETWORK OF BOTS
 
@@ -37,6 +38,14 @@ class OptBotHivemind(PythonHivemind):
             dtree = DecisionTree(state, C.ACTIONS, brancher, self.scorer.score)
             # determine best case action
             dtree.branch()
+            for _ in range(C.TIMESTEPS):
+                dtree.prune(C.NUM_RETAIN)
+                if dtree.is_determined():
+                    # break from loop if all the best paths stem from a single action
+                    # (saves computation time)
+                    break
+                dtree.branch()
+            # set best case action
             actions.append(dtree.ideal_key())
         return actions
 
