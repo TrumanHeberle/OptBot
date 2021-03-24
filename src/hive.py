@@ -4,9 +4,9 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlbot.agents.hivemind.python_hivemind import PythonHivemind
 import numpy as np
 import utils.constants as C
-from utils.state import reduce_state, reduce_action, expand_action, StateStorage
-from utils.scorer import BallChaserScorer
-from utils.predictor import DerivedStatePredictor
+from utils.state import reduce_state, expand_action, StateStorage
+from utils.scorers.ball_chaser_scorer import Scorer
+from utils.predictors.derived_predictor import Predictor
 from utils.decision import DecisionTree
 from time import time
 
@@ -21,8 +21,8 @@ class OptBotHivemind(PythonHivemind):
         # initialize history
         self.state_history = StateStorage();
         self.actions = {i:expand_action(C.NOTHING) for i in self.drone_indices}
-        self.scorer = BallChaserScorer()
-        self.predictor = DerivedStatePredictor()
+        self.scorer = Scorer()
+        self.predictor = Predictor()
 
     def choose_action(self, state: np.ndarray, dt: float) -> List[np.ndarray]:
         """Chooses a decision for the action of each drone. Returns a list of
