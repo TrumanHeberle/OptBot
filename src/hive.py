@@ -2,9 +2,8 @@ from typing import Dict, List
 from rlbot.utils.structures.bot_input_struct import PlayerInput
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlbot.agents.hivemind.python_hivemind import PythonHivemind
-import numpy as np
 import utils.constants as C
-from utils.state import reduce_state, expand_action, StateStorage
+from utils.state import StateStorage, State
 from utils.scorers.ball_chaser_scorer import Scorer
 from utils.predictors.derived_predictor import Predictor
 from utils.decision import DecisionTree
@@ -15,38 +14,48 @@ from time import time
 class OptBotHivemind(PythonHivemind):
     def initialize_hive(self, state: GameTickPacket) -> None:
         """Initializes the collection of bots (drones)."""
-        index = next(iter(self.drone_indices))
-        #self.team = state.game_cars[index].team
         self.enemy_indices = set([i for i in range(state.num_cars) if state.game_cars[i].team != self.team])
-        # initialize history
-        self.state_history = StateStorage();
-        self.actions = {i:expand_action(C.NOTHING) for i in self.drone_indices}
+        self.history = StateStorage(self.drone_indices, self.enemy_indices)
         self.scorer = Scorer()
         self.predictor = Predictor()
+        self.hive_actions = {i:self.history.last_actions[i] for i in self.drone_indices}
 
-    def choose_action(self, state: np.ndarray, dt: float) -> List[np.ndarray]:
-        """Chooses a decision for the action of each drone. Returns a list of
-        bot actions in order of drone indices."""
-        actions = []
-        # select best possible action per bot
+    def choose_action(self, state: State) -> Dict[int, PlayerInput]:
+        """Returns a dictionary of predicted enemy and bot actions."""
+        actions = {}
+        # select worst possible action per enemy
+        for i in self.enemy_indices:
+            actions[i] = C.NOTHING
+        # select best possible action per drone
         for i in self.drone_indices:
             # instantiate decision tree
             def brancher(state, action):
                 # predict next state for a drone assuming remaining drone inputs remain constant
-                action_list = [action if i==j else self.actions[j] for j in self.drone_indices]
-                return self.predictor.predict(state, action_list, dt)
+                dactions = [action if i==j else self.drone_actions[j] for j in self.drone_indices]
+                eactions = [C.NOTHING for _ in self.enemy_indices]
+                return self.predictor.predict(state, [dactions, eactions], C.DT)
             dtree = DecisionTree(state, C.ACTIONS, brancher, self.scorer.score)
             # determine best case action
             dtree.branch()
-            for _ in range(C.TIMESTEPS):
+            for _ in range(C.TIMESTEPS-1):
                 dtree.prune(C.NUM_RETAIN)
                 if dtree.is_determined():
                     # break from loop if all the best paths stem from a single action
                     # (saves computation time)
-                    break
+                    dtree.prune(1)
                 dtree.branch()
             # set best case action
-            actions.append(dtree.ideal_key())
+            actions[i] = dtree.ideal_key()
+        # render prediction
+        self.renderer.begin_rendering()
+        last = state
+        for s in dtree.ideal_path():
+            self.renderer.draw_line_3d((last.ball.location-2).as_list(),(s.ball.location-2).as_list(),self.renderer.white())
+            self.renderer.draw_rect_3d((s.ball.location-2).as_list(),4,4,True,self.renderer.white())
+            self.renderer.draw_line_3d((last.drones[0].location-2).as_list(),(s.drones[0].location-2).as_list(),self.renderer.white())
+            self.renderer.draw_rect_3d((s.drones[0].location-2).as_list(),4,4,True,self.renderer.white())
+            last = s
+        self.renderer.end_rendering()
         return actions
 
     def get_outputs(self, state: GameTickPacket) -> Dict[int, PlayerInput]:
@@ -55,12 +64,9 @@ class OptBotHivemind(PythonHivemind):
         # check if round is active
         if state.game_info.is_round_active:
             # round is active, update state and make bot decisions
-            current_state = reduce_state(state, self.drone_indices, self.enemy_indices)
-            self.actions = self.choose_action(current_state, C.DT)
-            self.state_history.store(current_state, self.actions, state.game_info.seconds_elapsed)
-            # uncondense actions for RLBot API
-            self.actions = {dindex:expand_action(self.actions[i]) for dindex, i in enumerate(self.drone_indices)}
+            current_state = self.history.add_state(state)
+            self.hive_actions = self.history.add_actions(self.choose_action(current_state))
         else:
             # round was interrupted, restart data capture
-            self.state_history.conclude()
-        return self.actions
+            self.history.add_interupt()
+        return self.hive_actions
