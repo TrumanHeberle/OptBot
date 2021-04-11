@@ -1,82 +1,96 @@
-from typing import Set, List
+from typing import Set, Dict, List
+from copy import copy
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlbot.utils.structures.bot_input_struct import PlayerInput
-import numpy as np
+from utils.vector import Vector
+import utils.constants as C
 
 ### THIS FILE CONTAINS FUNCTIONS AND CLASSES TO HELP MANAGE PACKETS
 
-def reduce_state(state: GameTickPacket, drone_indices: Set[int], enemy_indices: Set[int]) -> np.ndarray:
-    """Returns a condensed version of an RLBot packet."""
-    # get game state for cars and ball
-    drones = [state.game_cars[i] for i in drone_indices]
-    enemies = [state.game_cars[i] for i in enemy_indices]
-    ball = state.game_ball.physics
-    # condense game state into a list
-    return np.array([
-        # game ball location [0:3]
-        ball.location.x, ball.location.y, ball.location.z,
-        # game ball velocity [3:6]
-        ball.velocity.x, ball.velocity.y, ball.velocity.z,
-        # drone locations (in order) [6:9]
-        drones[0].physics.location.x, drones[0].physics.location.y, drones[0].physics.location.z,
-        # enemy locations (in order) [9:12]
-        enemies[0].physics.location.x, enemies[0].physics.location.y, enemies[0].physics.location.z,
-        # drone velocities (in order) [12:15]
-        drones[0].physics.velocity.x, drones[0].physics.velocity.y, drones[0].physics.velocity.z,
-        # enemy velocity (in order) [15:18]
-        enemies[0].physics.velocity.x, enemies[0].physics.velocity.y, enemies[0].physics.velocity.z,
-        # drone rotations (in order) [18:21]
-        drones[0].physics.rotation.pitch, drones[0].physics.rotation.yaw, drones[0].physics.rotation.roll,
-        # enemy rotations (in order) [21:24]
-        enemies[0].physics.rotation.pitch, enemies[0].physics.rotation.yaw, enemies[0].physics.rotation.roll,
-    ])
+class CarState:
+    """Stores information about the current car state"""
+    def __init__(self, location: Vector, velocity: Vector, \
+        angular_velocity: Vector, rotation: Vector, \
+        jumped: bool, double_jumped: bool, last_action: PlayerInput):
+        self.location = location
+        self.velocity = velocity
+        self.angular_velocity = angular_velocity
+        self.rotation = rotation
+        self.jumped = jumped
+        self.double_jumped = double_jumped
+        self.last_action = last_action
+    def __copy__(self):
+        return CarState(
+            location=copy(self.location),\
+            velocity=copy(self.velocity),\
+            angular_velocity=copy(self.angular_velocity),\
+            rotation=copy(self.rotation),\
+            jumped=copy(self.jumped), double_jumped=copy(self.double_jumped),
+            last_action=copy(self.last_action))
 
-def reduce_action(action: PlayerInput) -> np.ndarray:
-    """Returns a condensed version of the provided action"""
-    return np.array([
-        # directional controls [0:2]
-        action.throttle, action.steer,
-        # rotational controls [2:5]
-        action.pitch, action.yaw, action.roll,
-        # boolean controls [5:8]
-        action.jump, action.boost, action.handbrake
-    ])
+class BallState:
+    """Stores information about the current ball state"""
+    def __init__(self, location: Vector, velocity: Vector, angular_velocity: Vector):
+        self.location = location
+        self.velocity = velocity
+        self.angular_velocity = angular_velocity
+    def __copy__(self):
+        return BallState(
+            location=copy(self.location),\
+            velocity=copy(self.velocity),\
+            angular_velocity=copy(self.angular_velocity))
 
-def expand_action(action: np.ndarray) -> PlayerInput:
-    """Returns an uncondensed version of the provided action"""
-    return PlayerInput(*action)
+class State:
+    """Stores information about the current state"""
+    def __init__(self, ball: BallState, drones: List[CarState], enemies: List[CarState]):
+        self.ball = ball
+        self.drones = drones
+        self.enemies = enemies
+    def __copy__(self):
+        return State(
+            ball=copy(self.ball),\
+            drones=[copy(car) for car in self.drones],\
+            enemies=[copy(car) for car in self.enemies])
+
+def reduce_car(car, last_action: PlayerInput) -> CarState:
+    """Returns a car state given an RLBot car packet and the previous car action"""
+    phys = car.physics
+    return CarState(
+        location=Vector(phys.location.x, phys.location.y, phys.location.z),\
+        velocity=Vector(phys.velocity.x, phys.velocity.y, phys.velocity.z),\
+        angular_velocity=Vector(phys.angular_velocity.x, phys.angular_velocity.y, phys.angular_velocity.z),\
+        rotation=Vector(phys.rotation.roll, phys.rotation.pitch, phys.rotation.yaw),\
+        jumped=car.jumped, double_jumped=car.double_jumped,\
+        last_action=last_action)
+
+def reduce_ball(ball) -> BallState:
+    """Returns a ball state given an RLBot ball packet"""
+    return BallState(
+        location=Vector(ball.location.x, ball.location.y, ball.location.z),\
+        velocity=Vector(ball.velocity.x, ball.velocity.y, ball.velocity.z),\
+        angular_velocity=Vector(ball.angular_velocity.x, ball.angular_velocity.y, ball.angular_velocity.z))
 
 class StateStorage:
-    """Stores lists of (state, action, timestamp) pairs. A chain is a series of
-    states which directly follow each other."""
-    def __init__(self):
-        # concluded state chain list
-        self.state_chains = []
-        self.action_chains = []
-        self.timestamp_chains = []
-        self.total_states = 0
-        # the immediate state chain
-        self.states = []
-        self.actions = []
-        self.timestamps = []
-    def __len__(self):
-        return self.total_states
-    def store(self, state: np.ndarray, actions: List[np.ndarray], timestamp: float) -> None:
-        """Stores a frame into the immediate state chain"""
-        self.states.append(state)
-        self.actions.append(actions)
-        self.timestamps.append(timestamp)
-        self.total_states += 1
-    def conclude(self):
-        """Concludes and stores the immediate state chain into history before
-        restarting the immediate state chain"""
-        # check if immediate state chain is empty
-        if len(self.states) > 0:
-            # immediate state chain is not empty, conclude chain
-            self.state_chains.append(self.states)
-            self.action_chains.append(self.actions)
-            self.timestamp_chains.append(self.timestamps)
-            # restart immediate state chain
-            self.states = []
-            self.actions = []
-            self.timestamps = []
+    """Stores the game state and action history"""
+    def __init__(self, drone_indices: Set[int], enemy_indices: Set[int]):
+        self.drone_indices = drone_indices
+        self.enemy_indices = enemy_indices
+        self.last_actions = {i:C.NOTHING for i in self.drone_indices | self.enemy_indices}
+    def add_interupt(self):
+        """Called when an abrupt change occurs in game. Ex scoring a goal..."""
+        pass
+    def add_actions(self, actions: Dict[int, PlayerInput]) -> Dict[int, PlayerInput]:
+        """Stores a set of actions into action history and returns an action dictionary"""
+        # store reduced actions
+        self.last_actions = actions
+        return {i:actions[i] for i in self.drone_indices}
+    def add_state(self, packet: GameTickPacket) -> State:
+        """Stores a state into state history and returns the condensed state"""
+        # reduce state
+        ball = reduce_ball(packet.game_ball.physics)
+        # reduce car states
+        drones = [reduce_car(packet.game_cars[i], self.last_actions[i]) for i in self.drone_indices]
+        enemies = [reduce_car(packet.game_cars[i], self.last_actions[i]) for i in self.enemy_indices]
+        # store reduced state
+        self.last_state = State(ball, drones, enemies)
+        return self.last_state
