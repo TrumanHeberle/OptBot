@@ -3,7 +3,7 @@ from utils.predictors.predictor import StatePredictor
 import utils.vector as vector
 from utils.state import State
 from utils.vector import Vector
-from math import sin, cos, pi
+from math import sin, cos, acos, pi
 
 g = 650 # gravitational acceleration
 R = 91.25 # ball radius
@@ -26,30 +26,48 @@ Dy = -1.886491900437232     # yaw drag coefficient
 HITBOX_HEIGHT = 31.3
 VC_MAX = 2300               # car max velocity
 
+def car_ball_scale(vmag: float) -> float:
+    if vmag<=667:
+        return 0.65
+    if vmag<=2200:
+        return 0.65-(vmag-667)/22000
+    return 0.55-(vmag-2200)*(0.25)/(4667-2200);
+
 def update_ball(state,dt):
     # TODO: add better surface normal selection and bounce conditions
     normal = Vector(0,0,1)
-    point = Vector(state.location.x,state.location.y,0)
-    dist_perp = (state.location-point).scalar_project(normal)
-    vel_perp = state.velocity.scalar_project(normal)
+    point = Vector(state.ball.location.x,state.ball.location.y,0)
+    dist_perp = (state.ball.location-point).scalar_project(normal)
+    vel_perp = state.ball.velocity.scalar_project(normal)
     if dist_perp <= R and vel_perp < 0:
-        # bounce
+        # wall bounce
         vel_perp = normal*vel_perp
-        vel_tang = state.velocity-vel_perp
-        vel_surf = vel_tang+copy(normal).cross(state.angular_velocity)*R
+        vel_tang = state.ball.velocity-vel_perp
+        vel_surf = vel_tang+copy(normal).cross(state.ball.angular_velocity)*R
         Jperp = -vel_perp*(1+CR)
         Jtang = vel_surf if vel_surf.mag()==0 else -vel_surf*min(1,Y*vel_perp.mag()/vel_surf.mag())*mu
-        state.velocity += Jperp+Jtang
-        state.angular_velocity += Jtang.cross(normal)*R
+        state.ball.velocity += Jperp+Jtang
+        state.ball.angular_velocity += Jtang.cross(normal)*R
     else:
         # gravity
-        state.angular_velocity.z -= g*dt
+        state.ball.velocity.z -= g*dt
+    # get car collisions
+    for car in state.drones+state.enemies:
+        # TODO: make collision condition better
+        if (car.location-state.ball.location).mag() <= R:
+            f = Vector(1,0,0).rpy(car.rotation)
+            n = state.ball.location-car.location
+            n.z *= 0.35
+            n = (n-f*0.35*(n).dot(f)).normalize()
+            vmag = (state.ball.velocity-car.velocity).mag()
+            Jcol = n*vmag*car_ball_scale(vmag)
+            state.ball.velocity += Jcol
     # update states
-    state.velocity = state.velocity.mag_normalize(VB_MAX)
-    state.angular_velocity = state.angular_velocity.mag_normalize(OMEGAB_MAX)
-    state.location += state.velocity*dt
+    state.ball.velocity = state.ball.velocity.mag_normalize(VB_MAX)
+    state.ball.angular_velocity = state.ball.angular_velocity.mag_normalize(OMEGAB_MAX)
+    state.ball.location += state.ball.velocity*dt
 
-def turn_curvature(vmag):
+def turn_curvature(vmag: float) -> float:
     if vmag<=0:
         return 0
     if vmag<500:
@@ -76,9 +94,10 @@ def update_car(state,action,dt):
     # TODO: address determining wheel contact for all surfaces
     if state.location.z > HITBOX_HEIGHT:
         # aerial physics
+        u = Vector(action.roll,action.pitch,action.yaw)
         T = Vector(Tr,Tp,Ty)
-        D = Vector(Dr,Dp*(1-abs(state.rotation.pitch)),Dy*(1-abs(state.rotation.yaw)))
-        torque = T*state.rotation+D*state.angular_velocity.rpy(-state.rotation)
+        D = Vector(Dr,Dp*(1-abs(u.pitch)),Dy*(1-abs(u.yaw)))
+        torque = T*u+D*state.angular_velocity.rpy(-state.rotation)
         torque = torque.rpy(state.rotation)
         state.angular_velocity += torque*dt
         state.velocity.z -= g*dt # gravity
@@ -119,13 +138,16 @@ def update_car(state,action,dt):
             acc += up*291.667/dt
         else:
             state.jumped = 0
-    state.angular_velocity = state.angular_velocity.mag_normalize(OMEGAC_MAX)
     # update rotation
-    r = state.angular_velocity.scalar_project(forward)
-    p = state.angular_velocity.scalar_project(left)
-    y = state.angular_velocity.scalar_project(up)
-    mx = Vector(ROLL_MAX, PITCH_MAX, YAW_MAX)
-    state.rotation = (state.rotation+Vector(r,p,y)*dt+mx) % (mx*2)-mx
+    state.angular_velocity = state.angular_velocity.mag_normalize(OMEGAC_MAX)
+    dr = state.angular_velocity.scalar_project(forward)*dt
+    dp = state.angular_velocity.scalar_project(left)*dt
+    dy = state.angular_velocity.scalar_project(up)*dt
+    state.rotation = state.rotation+Vector(dr,dp,dy)
+    state.rotation.pitch = acos(-Vector(1,0,0).rpy(state.rotation).z)-pi/2
+    state.rotation.roll = (state.rotation.roll+ROLL_MAX) % (ROLL_MAX*2)-ROLL_MAX
+    state.rotation.yaw = (state.rotation.yaw+YAW_MAX) % (YAW_MAX*2)-YAW_MAX
+    print("{:.2f} ".format(state.rotation.pitch))
     # update state
     state.jumped = action.jump
     state.velocity += acc*dt
@@ -143,5 +165,5 @@ class Predictor(StatePredictor):
         for i, car in enumerate(next_state.enemies):
             update_car(car,actions[1][i],dt)
         # predict ball location
-        update_ball(next_state.ball,dt)
+        update_ball(next_state,dt)
         return next_state
