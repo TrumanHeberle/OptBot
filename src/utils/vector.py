@@ -1,7 +1,6 @@
 from typing import List
 from copy import copy
-import numpy as np
-from math import sqrt, sin, cos
+from math import sin, cos, acos
 
 ### THIS FILE CONTAINS STATIC FUNCTIONS FOR MANIPULATING VECTORS (3D)
 
@@ -49,17 +48,21 @@ class Vector:
     def __copy__(self):
         return Vector(self.x,self.y,self.z)
     def __str__(self):
-        return "("+str(self.x)+", "+str(self.y)+", "+str(self.z)+")"
+        return "("+str(self.x)+","+str(self.y)+","+str(self.z)+")"
     def as_list(self) -> List[float]:
         """Returns the vector as a list"""
         return [self.x,self.y,self.z]
+    def __eq__(self, other):
+        return self.x==other.x and self.y==other.y and self.z==other.z
+    def __ne__(self, other):
+        return self.x!=other.x or self.y!=other.y or self.z!=other.z
     def __add__(self, other):
         try:
             # vector addition
             return Vector(self.x+other.x,self.y+other.y,self.z+other.z)
         except:
             # scalar addition
-            return Vector(self.x-other,self.y-other,self.z-other)
+            return Vector(self.x+other,self.y+other,self.z+other)
     def __iadd__(self, other):
         try:
             # vector addition
@@ -147,6 +150,9 @@ class Vector:
     def scalar_project(self, axis) -> float:
         """Returns the magnitude of the vector projected onto an axis"""
         return self.dot(axis.normalize())
+    def angle(self, other) -> float:
+        """Returns the angle between two vectors"""
+        return acos(self.dot(other)/(self.mag()*other.mag()))
     def normalize(self):
         """Returns the vector normalized to magnitude 1"""
         m = self.mag()
