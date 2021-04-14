@@ -1,4 +1,3 @@
-from typing import List
 from copy import copy
 from math import sin, cos, acos
 
@@ -13,45 +12,46 @@ class Vector:
     def x(self):
         return self.x1
     @property
-    def roll(self):
-        return self.x1
-    @property
     def y(self):
-        return self.x2
-    @property
-    def pitch(self):
         return self.x2
     @property
     def z(self):
         return self.x3
-    @property
-    def yaw(self):
-        return self.x3
     @x.setter
     def x(self, val: float):
-        self.x1 = val
-    @roll.setter
-    def roll(self, val: float):
         self.x1 = val
     @y.setter
     def y(self, val: float):
         self.x2 = val
-    @pitch.setter
-    def pitch(self, val: float):
-        self.x2 = val
     @z.setter
     def z(self, val: float):
         self.x3 = val
+    @property
+    def roll(self):
+        return self.x
+    @property
+    def pitch(self):
+        return self.y
+    @property
+    def yaw(self):
+        return self.z
+    @roll.setter
+    def roll(self, val: float):
+        self.x = val
+    @pitch.setter
+    def pitch(self, val: float):
+        self.y = val
     @yaw.setter
     def yaw(self, val: float):
-        self.x3 = val
+        self.z = val
     def __copy__(self):
         return Vector(self.x,self.y,self.z)
     def __str__(self):
         return "("+str(self.x)+","+str(self.y)+","+str(self.z)+")"
-    def as_list(self) -> List[float]:
-        """Returns the vector as a list"""
-        return [self.x,self.y,self.z]
+    def __repr__(self):
+        return str(self)
+    def __getitem__(self, i):
+        return (self.x,self.y,self.z)[i]
     def __eq__(self, other):
         return self.x==other.x and self.y==other.y and self.z==other.z
     def __ne__(self, other):
@@ -122,6 +122,18 @@ class Vector:
         except:
             # scalar modulo
             return Vector(self.x%other,self.y%other,self.z%other)
+    def __imod__(self, other):
+        try:
+            # elementwise modulo
+            self.x %= other.x
+            self.y %= other.y
+            self.z %= other.z
+        except:
+            # scalar modulo
+            self.x %= other
+            self.y %= other
+            self.z %= other
+        return self
     def __truediv__(self, other):
         try:
             # elementwise division

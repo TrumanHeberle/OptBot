@@ -37,12 +37,13 @@ def test_copy():
 
 def test_to_string():
     """vector to string"""
-    1/0
     assert str(Vector(1,2,3))=="(1,2,3)"
 
 def test_to_list():
     """vector to list"""
     assert list(Vector(1,2,3))==[1,2,3]
+    assert list(Vector(-1,0,1))==[-1,0,1]
+    assert list(Vector(-1,-2,-3))==[-1,-2,-3]
 
 def test_equality():
     """vector equality"""
@@ -316,4 +317,4 @@ def test_project():
 
 def test_rotation():
     """vector rotation"""
-    pass
+    # TODO: write rotation test

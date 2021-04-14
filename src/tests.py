@@ -5,7 +5,7 @@ from traceback import extract_tb
 from inspect import getmembers, isfunction
 from multiprocessing import Pool, TimeoutError
 
-TIMEOUT = 1 # seconds
+TIMEOUT = 3 # seconds
 
 def run_case(case):
     """Safely executes a test case and returns an error string on fail"""
@@ -23,7 +23,7 @@ def run_suite(cases, fname="unspecified"):
     """Runs a series of test cases and prints the results"""
     # run test cases safely
     with Pool() as pool:
-        results = [pool.apply_async(run_case,[case]) for case in cases]
+        results = [pool.apply_async(run_case,(case,)) for case in cases]
         for i,result in enumerate(results):
             try:
                 results[i] = result.get(TIMEOUT)
