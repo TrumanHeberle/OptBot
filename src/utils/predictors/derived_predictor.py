@@ -102,6 +102,8 @@ def update_car(state,action,dt):
         state.angular_velocity += torque*dt
         state.velocity.z -= g*dt # gravity
         # jump/dodge
+        # TODO: address jump time limits
+        # TODO: address dodge momentum effects
         if action.jump and state.last_action.jump and not state.double_jumped:
             # extend jump
             acc += up*1458.333374
@@ -113,6 +115,7 @@ def update_car(state,action,dt):
     else:
         # ground physics
         # TODO: address frictional forces, normal forces, wall driving, etc...
+        # TODO: address braking forces
         n = Vector(0,0,1)
         if abs(throttle)<0.01:
             # coast
@@ -147,7 +150,6 @@ def update_car(state,action,dt):
     state.rotation.pitch = acos(-Vector(1,0,0).rpy(state.rotation).z)-pi/2
     state.rotation.roll = (state.rotation.roll+ROLL_MAX) % (ROLL_MAX*2)-ROLL_MAX
     state.rotation.yaw = (state.rotation.yaw+YAW_MAX) % (YAW_MAX*2)-YAW_MAX
-    print("{:.2f} ".format(state.rotation.pitch))
     # update state
     state.jumped = action.jump
     state.velocity += acc*dt

@@ -7,6 +7,7 @@ from utils.state import StateStorage, State
 from utils.scorers.ball_chaser_scorer import Scorer
 from utils.predictors.derived_predictor import Predictor
 from utils.decision import DecisionTree
+from utils.vector import Vector
 from time import time
 
 ### THIS FILE CONTAINS CODE TO CONTROL A NETWORK OF BOTS
@@ -50,10 +51,16 @@ class OptBotHivemind(PythonHivemind):
         self.renderer.begin_rendering()
         last = state
         for s in dtree.ideal_path():
-            self.renderer.draw_line_3d((last.ball.location-2).as_list(),(s.ball.location-2).as_list(),self.renderer.white())
-            self.renderer.draw_rect_3d((s.ball.location-2).as_list(),4,4,True,self.renderer.white())
-            self.renderer.draw_line_3d((last.drones[0].location-2).as_list(),(s.drones[0].location-2).as_list(),self.renderer.white())
-            self.renderer.draw_rect_3d((s.drones[0].location-2).as_list(),4,4,True,self.renderer.white())
+            bll = list(last.ball.location-2)
+            bls = list(s.ball.location-2)
+            cll = list(last.drones[0].location-2)
+            cls = list(s.drones[0].location-2)
+            dir = list((s.drones[0].location-2)+Vector(1,0,0).rpy(s.drones[0].rotation)*50)
+            self.renderer.draw_line_3d(bll,bls,self.renderer.white())
+            self.renderer.draw_rect_3d(bls,4,4,True,self.renderer.white())
+            self.renderer.draw_line_3d(cll,cls,self.renderer.white())
+            self.renderer.draw_rect_3d(cls,4,4,True,self.renderer.white())
+            self.renderer.draw_line_3d(cls,dir,self.renderer.red())
             last = s
         self.renderer.end_rendering()
         return actions
