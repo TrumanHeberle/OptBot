@@ -71,6 +71,9 @@ def test_addition():
     assert Vector(1,2,3)+2==Vector(3,4,5)
     assert Vector(1,2,3)+(-2)==Vector(-1,0,1)
     assert Vector(1,2,3)+0==Vector(1,2,3)
+    assert 2+Vector(1,2,3)==Vector(3,4,5)
+    assert (-2)+Vector(1,2,3)==Vector(-1,0,1)
+    assert 0+Vector(1,2,3)==Vector(1,2,3)
     # inplace vector addition
     v = Vector(1,2,3)
     v += Vector(1,2,3)
@@ -90,6 +93,9 @@ def test_subtraction():
     assert Vector(1,2,3)-2==Vector(-1,0,1)
     assert Vector(1,2,3)-(-2)==Vector(3,4,5)
     assert Vector(1,2,3)-0==Vector(1,2,3)
+    assert 2-Vector(1,2,3)==Vector(1,0,-1)
+    assert (-2)-Vector(1,2,3)==Vector(-3,-4,-5)
+    assert 0-Vector(1,2,3)==Vector(-1,-2,-3)
     # inplace vector subtraction
     v = Vector(1,2,3)
     v -= Vector(1,2,3)
@@ -115,6 +121,9 @@ def test_multiplication():
     assert Vector(1,2,3)*2==Vector(2,4,6)
     assert Vector(1,2,3)*(-2)==Vector(-2,-4,-6)
     assert Vector(1,2,3)*0==Vector(0,0,0)
+    assert 2*Vector(1,2,3)==Vector(2,4,6)
+    assert (-2)*Vector(1,2,3)==Vector(-2,-4,-6)
+    assert 0*Vector(1,2,3)==Vector(0,0,0)
     # inplace vector multiplication
     v = Vector(1,2,3)
     v *= Vector(1,2,3)
@@ -134,6 +143,8 @@ def test_division():
     assert Vector(1,2,3)/2==Vector(0.5,1,1.5)
     assert Vector(1,2,3)/(-2)==Vector(-0.5,-1,-1.5)
     assert Vector(1,2,3)/0.5==Vector(2,4,6)
+    assert 6/Vector(1,2,3)==Vector(6,3,2)
+    assert (-6)/Vector(1,2,3)==Vector(-6,-3,-2)
     # inplace vector division
     v = Vector(1,2,3)
     v /= Vector(1,2,3)

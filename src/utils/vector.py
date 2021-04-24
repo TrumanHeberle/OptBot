@@ -63,6 +63,13 @@ class Vector:
         except:
             # scalar addition
             return Vector(self.x+other,self.y+other,self.z+other)
+    def __radd__(self, other):
+        try:
+            # vector addition
+            return Vector(other.x+self.x,other.y+self.y,other.z+self.z)
+        except:
+            # scalar addition
+            return Vector(other+self.x,other+self.y,other+self.z)
     def __iadd__(self, other):
         try:
             # vector addition
@@ -82,6 +89,13 @@ class Vector:
         except:
             # scalar subtraction
             return Vector(self.x-other,self.y-other,self.z-other)
+    def __rsub__(self, other):
+        try:
+            # vector subtraction
+            return Vector(other.x-self.x,other.y-self.y,other.z-self.z)
+        except:
+            # scalar subtraction
+            return Vector(other-self.x,other-self.y,other-self.z)
     def __isub__(self, other):
         try:
             # vector subtraction
@@ -101,6 +115,13 @@ class Vector:
         except:
             # scalar multiplication
             return Vector(self.x*other,self.y*other,self.z*other)
+    def __rmul__(self, other):
+        try:
+            # elementwise multiplication
+            return Vector(other.x*self.x,other.y*self.y,other.z*self.z)
+        except:
+            # scalar multiplication
+            return Vector(other*self.x,other*self.y,other*self.z)
     def __imul__(self, other):
         try:
             # elementwise multiplication
@@ -141,6 +162,13 @@ class Vector:
         except:
             # scalar division
             return Vector(self.x/other,self.y/other,self.z/other)
+    def __rtruediv__(self, other):
+        try:
+            # elementwise division
+            return Vector(other.x/self.x,other.y/self.y,other.z/self.z)
+        except:
+            # scalar division
+            return Vector(other/self.x,other/self.y,other/self.z)
     def __itruediv__(self, other):
         try:
             # elementwise division
