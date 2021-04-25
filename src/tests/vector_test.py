@@ -2,7 +2,8 @@ from utils.vector import Vector
 from copy import copy
 from math import pi, atan, isclose
 
-TOLERANCE = 0.00000001;
+FLOAT_PRECISION = 0.000001;
+TOLERANCE = FLOAT_PRECISION;
 
 def test_init():
     """vector initialization"""
@@ -37,7 +38,8 @@ def test_copy():
 
 def test_to_string():
     """vector to string"""
-    assert str(Vector(1,2,3))=="(1,2,3)"
+    v = Vector(1,2,3)
+    assert str(v)==f"({v.x},{v.y},{v.z})"
 
 def test_to_list():
     """vector to list"""
@@ -47,6 +49,7 @@ def test_to_list():
 
 def test_equality():
     """vector equality"""
+    # exact equality
     v1 = Vector(1,2,3)
     v2 = Vector(1,2,3)
     assert v1==v2
@@ -60,6 +63,32 @@ def test_equality():
     assert v1!=v2
     v2.x = 1
     assert v1==v2
+    # approximate equality
+    v1 = Vector(1,2,3)
+    v2 = Vector(1,2,3)
+    assert v1.approx(v2)
+    v2.z = 1
+    assert not v1.approx(v2)
+    v2.z = 3
+    v2.y = 3
+    assert not v1.approx(v2)
+    v2.y = 2
+    v2.x = 2
+    assert not v1.approx(v2)
+    v2.x = 1
+    assert v1.approx(v2)
+    # tolerance checking in all directions
+    assert Vector(0,0,0).approx(Vector(0.000001,0,0),0.00001)
+    assert Vector(0,0,0).approx(Vector(0,0.000001,0),0.00001)
+    assert Vector(0,0,0).approx(Vector(0,0,0.000001),0.00001)
+    # tolerance checking over multiple tolerances
+    assert Vector(0,0,0).approx(Vector(0.000001,0,0),0.01)
+    assert Vector(0,0,0).approx(Vector(0.000001,0,0),0.001)
+    assert Vector(0,0,0).approx(Vector(0.000001,0,0),0.0001)
+    assert Vector(0,0,0).approx(Vector(0.000001,0,0),0.00001)
+    assert not Vector(0,0,0).approx(Vector(0.000001,0,0),0.000001)
+    assert not Vector(0,0,0).approx(Vector(0.000001,0,0),0.0000001)
+    assert not Vector(0,0,0).approx(Vector(0.000001,0,0),0.00000001)
 
 def test_addition():
     """vector addition"""
@@ -270,18 +299,9 @@ def test_normalize():
     assert Vector(0,0.5,0).normalize()==Vector(0,1,0)
     assert Vector(0,0,0.6).normalize()==Vector(0,0,1)
     # general cases
-    n = Vector(1,1,0).normalize()
-    assert isclose(n.x,0.5**0.5,abs_tol=TOLERANCE)
-    assert isclose(n.y,0.5**0.5,abs_tol=TOLERANCE)
-    assert n.z==0
-    n = Vector(0,1,1).normalize()
-    assert n.x==0
-    assert isclose(n.y,0.5**0.5,abs_tol=TOLERANCE)
-    assert isclose(n.z,0.5**0.5,abs_tol=TOLERANCE)
-    n = Vector(1,-1,1).normalize()
-    assert isclose(n.x,(1/3)**0.5,abs_tol=TOLERANCE)
-    assert isclose(n.y,-(1/3)**0.5,abs_tol=TOLERANCE)
-    assert isclose(n.z,(1/3)**0.5,abs_tol=TOLERANCE)
+    assert Vector(1,1,0).normalize().approx(Vector(0.5**0.5,0.5**0.5,0),TOLERANCE)
+    assert Vector(0,1,1).normalize().approx(Vector(0,0.5**0.5,0.5**0.5),TOLERANCE)
+    assert Vector(1,-1,1).normalize().approx(Vector((1/3)**0.5,-(1/3)**0.5,(1/3)**0.5),TOLERANCE)
 
 def test_project():
     """vector projection"""
@@ -320,12 +340,43 @@ def test_project():
     assert xyz.scalar_project(z)==1
     # general cases
     p = xyz.project(xy)
-    assert isclose(p.x,1,abs_tol=TOLERANCE) and isclose(p.y,1,abs_tol=TOLERANCE) and p.z==0
+    assert p.approx(Vector(1,1,0),TOLERANCE)
     assert isclose(xyz.scalar_project(xy),2**0.5,abs_tol=TOLERANCE)
-    p = v.project(xy)
-    assert isclose(p.x,10.5,abs_tol=TOLERANCE) and isclose(p.y,10.5,abs_tol=TOLERANCE) and p.z==0
+    assert v.project(xy).approx(Vector(10.5,10.5,0),TOLERANCE)
     assert isclose(v.scalar_project(xy),(2*(10.5**2))**0.5,abs_tol=TOLERANCE)
 
 def test_rotation():
     """vector rotation"""
-    # TODO: write rotation test
+    # zero rotation case
+    assert Vector(0,0,0).rpy(Vector(0,0,0))==Vector(0,0,0)
+    assert Vector(1,0,0).rpy(Vector(0,0,0))==Vector(1,0,0)
+    assert Vector(0,1,0).rpy(Vector(0,0,0))==Vector(0,1,0)
+    assert Vector(0,0,1).rpy(Vector(0,0,0))==Vector(0,0,1)
+    assert Vector(1,1,1).rpy(Vector(0,0,0))==Vector(1,1,1)
+    assert Vector(-1,-1,-1).rpy(Vector(0,0,0))==Vector(-1,-1,-1)
+    # rotations about parallel axis
+    assert Vector(1,0,0).rpy(Vector(pi/4,0,0))==Vector(1,0,0)
+    assert Vector(0,1,0).rpy(Vector(0,pi/4,0))==Vector(0,1,0)
+    assert Vector(0,0,1).rpy(Vector(0,0,pi/4))==Vector(0,0,1)
+    # full rotations about any axis
+    assert Vector(1,1,1).rpy(Vector(2*pi,0,0)).approx(Vector(1,1,1),TOLERANCE)
+    assert Vector(1,1,1).rpy(Vector(0,2*pi,0)).approx(Vector(1,1,1),TOLERANCE)
+    assert Vector(1,1,1).rpy(Vector(0,0,2*pi)).approx(Vector(1,1,1),TOLERANCE)
+    # half rotations about any axis
+    assert Vector(1,1,1).rpy(Vector(pi,0,0)).approx(Vector(1,-1,-1),TOLERANCE)
+    assert Vector(1,1,1).rpy(Vector(0,pi,0)).approx(Vector(-1,1,-1),TOLERANCE)
+    assert Vector(1,1,1).rpy(Vector(0,0,pi)).approx(Vector(-1,-1,1),TOLERANCE)
+    # rotations about orthogonal axis
+    assert Vector(1,0,0).rpy(Vector(0,pi/2,0)).approx(Vector(0,0,1))
+    assert Vector(1,0,0).rpy(Vector(0,0,pi/2)).approx(Vector(0,1,0))
+    assert Vector(0,1,0).rpy(Vector(pi/2,0,0)).approx(Vector(0,0,-1))
+    assert Vector(0,1,0).rpy(Vector(0,0,pi/2)).approx(Vector(-1,0,0))
+    assert Vector(0,0,1).rpy(Vector(pi/2,0,0)).approx(Vector(0,1,0))
+    assert Vector(0,0,1).rpy(Vector(0,pi/2,0)).approx(Vector(-1,0,0))
+    # inverse rotations
+    assert Vector(1,0,0).rpy(Vector(0,-pi/2,0)).approx(Vector(0,0,-1))
+    assert Vector(1,0,0).rpy(Vector(0,0,-pi/2)).approx(Vector(0,-1,0))
+    assert Vector(0,1,0).rpy(Vector(-pi/2,0,0)).approx(Vector(0,0,1))
+    assert Vector(0,1,0).rpy(Vector(0,0,-pi/2)).approx(Vector(1,0,0))
+    assert Vector(0,0,1).rpy(Vector(-pi/2,0,0)).approx(Vector(0,-1,0))
+    assert Vector(0,0,1).rpy(Vector(0,-pi/2,0)).approx(Vector(1,0,0))

@@ -181,6 +181,9 @@ class Vector:
             self.y /= other
             self.z /= other
         return self
+    def approx(self, other, tolerance=0.000001):
+        """Returns whether two vectors are similar enough"""
+        return (self-other).mag() < tolerance
     def mag(self) -> float:
         """Returns the magnitude of the vector"""
         return (self.x**2+self.y**2+self.z**2)**0.5
@@ -220,10 +223,10 @@ class Vector:
         z = self.x*other.y-self.y*other.x
         return Vector(x,y,z)
     def rpy(self, other):
-        """Returns the vector rotated by euler angles"""
-        cp = cos(other.pitch); cy = cos(other.yaw); cr = cos(other.roll)
-        sp = sin(other.pitch); sy = sin(other.yaw); sr = sin(other.roll)
-        x = self.x*(cp*cy)+self.y*(cr*sy-cy*sp*sr)+self.z*(-cr*cy*sp-sr*sy)
-        y = self.x*(cp*sy)+self.y*(-cr*cy-sp*sr*sy)+self.z*(cy*sr-cr*sp*sy)
-        z = self.x*(sp)+self.y*(cp*sr)+self.z*(cp*cr)
+        "Returns the vector rotated by euler angles"
+        cr = cos(other.roll); cp = cos(other.pitch); cy = cos(other.yaw)
+        sr = sin(other.roll); sp = sin(other.pitch); sy = sin(other.yaw)
+        x = self.x*(cp*cy)+self.y*(cy*sp*sr-cr*sy)+self.z*(-cr*cy*sp-sr*sy)
+        y = self.x*(cp*sy)+self.y*(cr*cy+sp*sr*sy)+self.z*(cy*sr-cr*sp*sy)
+        z = self.x*(sp)+self.y*(-cp*sr)+self.z*(cp*cr)
         return Vector(x,y,z)
