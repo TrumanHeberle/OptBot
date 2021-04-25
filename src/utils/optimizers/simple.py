@@ -1,56 +1,60 @@
-from random import random
+#from numba import njit
 import numpy as np
-import seaborn as sb
 import matplotlib.pyplot as plt
+import seaborn as sb
 
-dt = 0.5
-A1 = [1,2,3]
-A2 = [4,5,6]
-A3 = [7,8,9]
-A = np.matrix([A1,A2,A3])
+# solves a system using simple linear regression
 
-def solve(randomness=0.5):
-    Ap = np.zeros((3,3))
-    res = [np.linalg.norm(Ap-A)]
-    for i in range(200):
-        # optimize on first set of residuals
-        s1 = [random(),random(),random()]
-        s2 = [random(),random(),random()]
-        s3 = [random(),random(),random()]
-        S1 = np.matrix([s1,s2,s3]).transpose()
-        s1r = 1+(random()-0.5)*randomness
-        s2r = 1+(random()-0.5)*randomness
-        s3r = 1+(random()-0.5)*randomness
-        S1Noisy = np.matrix([[s1r,0,0],[0,s2r,0],[0,0,s3r]])*S1
-        S2 = A*S1Noisy*dt
-        Aappx = S2*np.linalg.inv(S1)/dt;
-        Ap = (Ap*(i-1)+Aappx)/i if i>0 else Aappx
-        # check residuals of second set of residuals
-        s1 = [random(),random(),random()]
-        s2 = [random(),random(),random()]
-        s3 = [random(),random(),random()]
-        S1 = np.matrix([s1,s2,s3]).transpose()
-        res.append(np.linalg.norm((Ap-A)*S1))
-    return (Ap,res)
+#@njit
+def sample(n,m):
+    """returns a sample input of X"""
+    return np.random.uniform(-1,1,(n,m))
 
-# get results
-Aps = []
-residuals = []
-randomness = []
-for i in range(5):
-    r = i/4
-    Ap, res = solve(r)
-    Aps.append(Ap)
-    residuals.append(res)
-    randomness.append(r)
+#@njit
+def R(X):
+    """returns an adjusted sample input for the form: R=[X,1]'"""
+    return np.vstack((X,np.ones((1,X.shape[1]))))
 
-# plot results
-for i,Ap in enumerate(Aps):
-    print(randomness[i],"\n",Ap,"\n")
-plot = sb.lineplot(data=residuals)
-plot.set_title("Residual Norms of Simple Algorithm")
-plot.set_xlabel("Iteration Number")
-plot.set_ylabel("Residuals (2-Norm)")
-leg = plot.legend(randomness)
-leg.set_title("Noise Ratio")
+#@njit
+def solve(X,Y):
+    """return the constant matrix B for the form: Y = B*R"""
+    Rm = R(X)
+    RmT = Rm.transpose()
+    Y += np.random.uniform(-100,100,Y.shape) # randomness
+    return Y@RmT@np.linalg.inv(Rm@RmT)
+
+# true constants
+n = 60
+A = np.random.uniform(-1,1,(n,n))
+b = np.random.uniform(-1,1,(n,1))
+B = np.hstack((A,b))
+
+# numerical prediction
+ms = [n*2**(i+1) for i in range(16)]
+results = []
+for m in ms:
+    print(f"solving for {n*(n+1)} constants using {m} samples...")
+    X = sample(n,m)
+    results.append(solve(X,B@R(X)))
+
+# validation sample
+X = sample(n,n)
+Rm = R(X)
+Y = B@Rm
+
+# residuals
+resBr = [np.mean(abs((B-Bp)/B)) for Bp in results] # relative
+resNr = [np.mean(abs((Y-Bp@Rm)/Y)) for Bp in results] # relative
+resBa = [np.mean(abs(B-Bp)) for Bp in results] # absolute
+resNa = [np.mean(abs(Y-Bp@Rm)) for Bp in results] # absolute
+
+# residual graphs
+plot = sb.lineplot(x=ms,y=resBr)
+plot = sb.lineplot(x=ms,y=resBa)
+plot = sb.lineplot(x=ms,y=resNr)
+plot = sb.lineplot(x=ms,y=resNa)
+plot.set_title("Accuracy vs Sample Number")
+plot.set_xlabel("Number of Samples")
+plot.set_ylabel("Average Residual")
+plot.legend(labels=["B (relative)","B (absolute)","net (relative)","net (absolute)"])
 plt.show()
