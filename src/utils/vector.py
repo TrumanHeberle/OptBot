@@ -5,27 +5,28 @@ from math import sin, cos, acos
 
 class Vector:
     def __init__(self,x,y,z):
-        self.x1 = x
-        self.x2 = y
-        self.x3 = z
+        self.vals = x,y,z
     @property
     def x(self):
-        return self.x1
+        return self.vals[0]
     @property
     def y(self):
-        return self.x2
+        return self.vals[1]
     @property
     def z(self):
-        return self.x3
+        return self.vals[2]
     @x.setter
     def x(self, val: float):
-        self.x1 = val
+        _,y,z = self.vals
+        self.vals = val,y,z
     @y.setter
     def y(self, val: float):
-        self.x2 = val
+        x,_,z = self.vals
+        self.vals = x,val,z
     @z.setter
     def z(self, val: float):
-        self.x3 = val
+        x,y,_ = self.vals
+        self.vals = x,y,val
     @property
     def roll(self):
         return self.x
@@ -51,7 +52,7 @@ class Vector:
     def __repr__(self):
         return str(self)
     def __getitem__(self, i):
-        return (self.x,self.y,self.z)[i]
+        return self.vals[i]
     def __eq__(self, other):
         return self.x==other.x and self.y==other.y and self.z==other.z
     def __ne__(self, other):
