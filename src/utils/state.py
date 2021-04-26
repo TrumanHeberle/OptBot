@@ -1,74 +1,155 @@
 from typing import Set, Dict, List
+import numpy as np
 from copy import copy
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from rlbot.utils.structures.bot_input_struct import PlayerInput
 from utils.vector import Vector
 import utils.constants as C
 
-### THIS FILE CONTAINS FUNCTIONS AND CLASSES TO HELP MANAGE PACKETS
-
-class CarState:
+class CarState(np.ndarray):
     """Stores information about the current car state"""
-    def __init__(self, location: Vector, velocity: Vector, \
-        angular_velocity: Vector, rotation: Vector, \
-        jumped: bool, double_jumped: bool, last_action: PlayerInput):
-        self.location = location
-        self.velocity = velocity
-        self.angular_velocity = angular_velocity
-        self.rotation = rotation
-        self.jumped = jumped
-        self.double_jumped = double_jumped
-        self.last_action = last_action
-    def __copy__(self):
-        return CarState(
-            location=copy(self.location),\
-            velocity=copy(self.velocity),\
-            angular_velocity=copy(self.angular_velocity),\
-            rotation=copy(self.rotation),\
-            jumped=copy(self.jumped), double_jumped=copy(self.double_jumped),
-            last_action=copy(self.last_action))
+    def __new__(self, inputs):
+        return np.asarray(inputs).view(self)
+    @property
+    def location(self):
+        """car location vector"""
+        return Vector(*self[0:3])
+    @property
+    def velocity(self):
+        """car velocity vector"""
+        return Vector(*self[3:6])
+    @property
+    def angular_velocity(self):
+        """car angular velocity vector"""
+        return Vector(*self[6:9])
+    @property
+    def rotation(self):
+        """car euler rotation angles"""
+        return Vector(*self[9:12])
+    @property
+    def jumped(self):
+        """car has jumped"""
+        return self[12]
+    @property
+    def double_jumped(self):
+        """car has double jumped"""
+        return self[13]
+    @property
+    def last_action(self):
+        """car last choosen action"""
+        return PlayerInput(*self[14:22],0)
+    @location.setter
+    def location(self, value: Vector):
+        self[0:3] = list(value)
+        return self
+    @velocity.setter
+    def velocity(self, value: Vector):
+        self[3:6] = list(value)
+        return self
+    @angular_velocity.setter
+    def angular_velocity(self, value: Vector):
+        self[6:9] = list(value)
+        return self
+    @rotation.setter
+    def rotation(self, value: Vector):
+        self[9:12] = list(value)
+        return self
+    @jumped.setter
+    def jumped(self, value: bool):
+        self[12] = value
+        return self
+    @double_jumped.setter
+    def double_jumped(self, value: bool):
+        self[13] = value
+        return self
+    @last_action.setter
+    def last_action(self, value: PlayerInput):
+        self[14] = value.throttle
+        self[15] = value.steer
+        self[16] = value.pitch
+        self[17] = value.yaw
+        self[18] = value.roll
+        self[19] = value.jump
+        self[20] = value.boost
+        self[21] = value.handbrake
+        return self
 
-class BallState:
+class BallState(np.ndarray):
     """Stores information about the current ball state"""
-    def __init__(self, location: Vector, velocity: Vector, angular_velocity: Vector):
-        self.location = location
-        self.velocity = velocity
-        self.angular_velocity = angular_velocity
-    def __copy__(self):
-        return BallState(
-            location=copy(self.location),\
-            velocity=copy(self.velocity),\
-            angular_velocity=copy(self.angular_velocity))
+    def __new__(self, inputs):
+        return np.asarray(inputs).view(self)
+    @property
+    def location(self):
+        """ball location vector"""
+        return Vector(*self[0:3])
+    @property
+    def velocity(self):
+        """ball velocity vector"""
+        return Vector(*self[3:6])
+    @property
+    def angular_velocity(self):
+        """ball angular velocity vector"""
+        return Vector(*self[6:9])
+    @location.setter
+    def location(self, value: Vector):
+        self[0:3] = list(value)
+        return self
+    @velocity.setter
+    def velocity(self, value: Vector):
+        self[3:6] = list(value)
+        return self
+    @angular_velocity.setter
+    def angular_velocity(self, value: Vector):
+        self[6:9] = list(value)
+        return self
 
-class State:
-    """Stores information about the current state"""
-    def __init__(self, ball: BallState, drones: List[CarState], enemies: List[CarState]):
-        self.ball = ball
-        self.drones = drones
-        self.enemies = enemies
-    def __copy__(self):
-        return State(
-            ball=copy(self.ball),\
-            drones=[copy(car) for car in self.drones],\
-            enemies=[copy(car) for car in self.enemies])
+class State(np.ndarray):
+    def __new__(self, inputs):
+        ball = inputs[0]
+        drones = inputs[1]
+        enemies = inputs[2]
+        self.ndrones = len(drones)
+        self.nenemies = len(enemies)
+        return np.hstack((ball,*drones,*enemies)).view(self)
+    @property
+    def ball(self):
+        return BallState(self[0:9])
+    @property
+    def drones(self):
+        return [CarState(self[9+i*22:9+(i+1)*22]) for i in range(self.ndrones)]
+    @property
+    def enemies(self):
+        start = 9+(self.ndrones+1)*22
+        return [CarState(self[start+i*22:start+(i+1)*22]) for i in range(self.nenemies)]
 
 def reduce_car(car, last_action: PlayerInput) -> CarState:
     """Returns a car state given an RLBot car packet and the previous car action"""
     phys = car.physics
-    return CarState(
-        location=Vector(phys.location.x, phys.location.y, phys.location.z),\
-        velocity=Vector(phys.velocity.x, phys.velocity.y, phys.velocity.z),\
-        angular_velocity=Vector(phys.angular_velocity.x, phys.angular_velocity.y, phys.angular_velocity.z),\
-        rotation=Vector(phys.rotation.roll, phys.rotation.pitch, phys.rotation.yaw),\
-        jumped=car.jumped, double_jumped=car.double_jumped,\
-        last_action=last_action)
+    location = phys.location
+    velocity = phys.velocity
+    angular_velocity = phys.angular_velocity
+    rotation = phys.rotation
+    return [
+        location.x, location.y, location.z,
+        velocity.x, velocity.y, velocity.z,
+        angular_velocity.x, angular_velocity.y, angular_velocity.z,
+        rotation.roll, rotation.pitch, rotation.yaw,
+        car.jumped, car.double_jumped,
+        last_action.throttle, last_action.steer,
+        last_action.pitch, last_action.yaw, last_action.roll,
+        last_action.jump, last_action.boost, last_action.handbrake
+    ]
 
 def reduce_ball(ball) -> BallState:
     """Returns a ball state given an RLBot ball packet"""
-    return BallState(
-        location=Vector(ball.location.x, ball.location.y, ball.location.z),\
-        velocity=Vector(ball.velocity.x, ball.velocity.y, ball.velocity.z),\
-        angular_velocity=Vector(ball.angular_velocity.x, ball.angular_velocity.y, ball.angular_velocity.z))
+    location = ball.location
+    velocity = ball.velocity
+    angular_velocity = ball.angular_velocity
+    return [
+        location.x, location.y, location.z,
+        velocity.x, velocity.y, velocity.z,
+        angular_velocity.x, angular_velocity.y, angular_velocity.z,
+    ]
 
 class StateStorage:
     """Stores the game state and action history"""
@@ -92,5 +173,5 @@ class StateStorage:
         drones = [reduce_car(packet.game_cars[i], self.last_actions[i]) for i in self.drone_indices]
         enemies = [reduce_car(packet.game_cars[i], self.last_actions[i]) for i in self.enemy_indices]
         # store reduced state
-        self.last_state = State(ball, drones, enemies)
+        self.last_state = State([ball,drones,enemies])
         return self.last_state
