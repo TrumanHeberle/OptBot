@@ -33,6 +33,17 @@ def car_ball_scale(vmag: float) -> float:
         return 0.65-(vmag-667)/22000
     return 0.55-(vmag-2200)*(0.25)/(4667-2200);
 
+def car_ball_collision(ball,car):
+    # TODO: make collision condition better
+    if (car.location-ball.location).mag() > R: return
+    f = Vector(1,0,0).rpy(car.rotation)
+    n = ball.location-car.location
+    n.z *= 0.35
+    n = (n-f*0.35*(n).dot(f)).normalize()
+    vmag = (ball.velocity-car.velocity).mag()
+    Jcol = n*vmag*car_ball_scale(vmag)
+    ball.velocity += Jcol
+
 def update_ball(state,dt):
     # TODO: add better surface normal selection and bounce conditions
     normal = Vector(0,0,1)
@@ -52,16 +63,10 @@ def update_ball(state,dt):
         # gravity
         state.ball.velocity.z -= g*dt
     # get car collisions
-    for car in state.drones+state.enemies:
-        # TODO: make collision condition better
-        if (car.location-state.ball.location).mag() <= R:
-            f = Vector(1,0,0).rpy(car.rotation)
-            n = state.ball.location-car.location
-            n.z *= 0.35
-            n = (n-f*0.35*(n).dot(f)).normalize()
-            vmag = (state.ball.velocity-car.velocity).mag()
-            Jcol = n*vmag*car_ball_scale(vmag)
-            state.ball.velocity += Jcol
+    for i in state.drones:
+        car_ball_collision(state.ball,state.drones[i])
+    for i in state.enemies:
+        car_ball_collision(state.ball,state.enemies[i])
     # update states
     state.ball.velocity = state.ball.velocity.mag_normalize(VB_MAX)
     state.ball.angular_velocity = state.ball.angular_velocity.mag_normalize(OMEGAB_MAX)
@@ -80,12 +85,13 @@ def turn_curvature(vmag: float) -> float:
         return 0.003025-1.1e-6*vmag
     return 0.0018-4e-7*vmag
 
-def update_car(state,action,dt):
+def update_car(state,dt):
+    action = state.current_action
     throttle = 1 if action.boost>0 else action.throttle
     # update velocity
     forward = Vector(1,0,0).rpy(state.rotation)
     up = Vector(0,0,1).rpy(state.rotation)
-    left = Vector(0,1,0).rpy(state.rotation)
+    left = Vector(0,-1,0).rpy(state.rotation)
     vnorm = state.velocity.normalize()
     vm = state.velocity.mag()
     vforward = state.velocity.scalar_project(forward)
@@ -159,13 +165,13 @@ def update_car(state,action,dt):
 
 class Predictor(StatePredictor):
     """Updates the state by using hand derived approximate models of the physics."""
-    def predict(self, state, actions, dt):
+    def predict(self, state):
         next_state = copy(state)
         # update cars
-        for i, car in enumerate(next_state.drones):
-            update_car(car,actions[0][i],dt)
-        for i, car in enumerate(next_state.enemies):
-            update_car(car,actions[1][i],dt)
+        for i in next_state.drones:
+            update_car(next_state.drones[i],next_state.dt)
+        for i in next_state.enemies:
+            update_car(next_state.enemies[i],next_state.dt)
         # predict ball location
-        update_ball(next_state,dt)
+        update_ball(next_state,next_state.dt)
         return next_state
