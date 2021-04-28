@@ -7,7 +7,13 @@ TOLERANCE = FLOAT_PRECISION;
 
 def test_init():
     """vector initialization"""
+    # scalar initialization
     v = Vector(1,2,3)
+    assert v.x==1 and v.roll==1
+    assert v.y==2 and v.pitch==2
+    assert v.z==3 and v.yaw==3
+    # vector initialization
+    v = Vector([1,2,3])
     assert v.x==1 and v.roll==1
     assert v.y==2 and v.pitch==2
     assert v.z==3 and v.yaw==3
@@ -40,12 +46,22 @@ def test_to_string():
     """vector to string"""
     v = Vector(1,2,3)
     assert str(v)==f"({v.x},{v.y},{v.z})"
+    assert repr(v)==str(v)
 
 def test_to_list():
     """vector to list"""
+    # list generation
     assert list(Vector(1,2,3))==[1,2,3]
     assert list(Vector(-1,0,1))==[-1,0,1]
     assert list(Vector(-1,-2,-3))==[-1,-2,-3]
+    # tuple generation
+    x,y,z = Vector(1,2,3)
+    assert x==1 and y==2 and z==3
+    assert tuple(Vector(1,2,3))==(1,2,3)
+    assert tuple(Vector(-1,0,1))==(-1,0,1)
+    assert tuple(Vector(-1,-2,-3))==(-1,-2,-3)
+    x1,x2,x3,x4,x5,x6 = (*Vector(1,2,3),*Vector(4,5,6))
+    assert x1==1 and x2==2 and x3==3 and x4==4 and x5==5 and x6==6
 
 def test_equality():
     """vector equality"""
@@ -291,6 +307,7 @@ def test_normalize():
     """vector normalization"""
     # zero vector case
     assert Vector(0,0,0).normalize()==Vector(0,0,0)
+    assert Vector(1,0,0).mag_normalize(0)==Vector(0,0,0)
     # orthonormal cases
     assert Vector(1,0,0).normalize()==Vector(1,0,0)
     assert Vector(0,1,0).normalize()==Vector(0,1,0)
@@ -302,6 +319,10 @@ def test_normalize():
     assert Vector(1,1,0).normalize().approx(Vector(0.5**0.5,0.5**0.5,0),TOLERANCE)
     assert Vector(0,1,1).normalize().approx(Vector(0,0.5**0.5,0.5**0.5),TOLERANCE)
     assert Vector(1,-1,1).normalize().approx(Vector((1/3)**0.5,-(1/3)**0.5,(1/3)**0.5),TOLERANCE)
+    # magnitude normalize
+    assert Vector(2,0,0).mag_normalize(1)==Vector(1,0,0)
+    assert Vector(0,3,0).mag_normalize(2)==Vector(0,2,0)
+    assert Vector(4,0,4).mag_normalize(3).approx(Vector(4*3/(32**0.5),0,4*3/(32**0.5)),TOLERANCE)
 
 def test_project():
     """vector projection"""
