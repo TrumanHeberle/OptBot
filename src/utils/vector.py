@@ -4,8 +4,11 @@ from math import sin, cos, acos
 ### THIS FILE CONTAINS STATIC FUNCTIONS FOR MANIPULATING VECTORS (3D)
 
 class Vector:
-    def __init__(self,x,y,z):
-        self.vals = x,y,z
+    def __init__(self,x,y=None,z=None):
+        if y is not None and z is not None:
+            self.vals = x,y,z
+        else:
+            self.vals = x
     @property
     def x(self):
         return self.vals[0]
