@@ -6,9 +6,11 @@ class Scorer(StateScorer):
     def score(self, state):
         s = 0
         # reward for drones being closer
-        for car in state.drones:
+        for i in state.drones:
+            car = state.drones[i]
             s -= (state.ball.location-car.location).mag()
         # reward for enemies being farther
-        for car in state.enemies:
+        for i in state.enemies:
+            car = state.enemies[i]
             s += (state.ball.location-car.location).mag()
         return  s
