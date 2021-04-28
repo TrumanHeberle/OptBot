@@ -51,7 +51,7 @@ def get_suite(mname):
         is_case = lambda f, fname: isfunction(f) and fname[:4]=="test"
         cases = [f for fname, f in getmembers(modules[mname]) if is_case(f,fname)]
     except Exception as err:
-        print(err)
+        print(err,"\n")
     finally:
         return cases
 
