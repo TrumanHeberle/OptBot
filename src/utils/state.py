@@ -201,8 +201,8 @@ class State(ndarray):
         return BallState(self[1:10])
     @property
     def drones(self):
-        return {i:CarState(self[10+i*31:10+(i+1)*31]) for i in self.drone_indices}
+        return {i:CarState(self[10+n*30:10+(n+1)*30]) for n,i in enumerate(self.drone_indices)}
     @property
     def enemies(self):
-        s = 10+len(self.drone_indices)*31
-        return {i:CarState(self[s+i*31:s+(i+1)*31]) for i in self.enemy_indices}
+        s = 10+len(self.drone_indices)*30
+        return {i:CarState(self[s+n*30:s+(n+1)*30]) for n,i in enumerate(self.enemy_indices)}

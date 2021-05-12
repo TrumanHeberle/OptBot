@@ -5,8 +5,8 @@ from math import sin, pi
 X = 0
 Y = 5120
 Z = 321
-DRONE_NET = Vector(X,Y,Z)
-ENEMY_NET = Vector(X,-Y,Z)
+ENEMY_NET = Vector(X,Y,Z)
+DRONE_NET = Vector(X,-Y,Z)
 OMEGAC_MAX = 5.5
 
 class Scorer(StateScorer):
@@ -30,7 +30,7 @@ class Scorer(StateScorer):
             d1 = state.ball.location-car.location
             d2 = ENEMY_NET-state.ball.location
             f = Vector(1,0,0).rpy(car.rotation)
-            a = f.angle(d)
+            a = f.angle(d1)
             s += (d1.mag()+d2.mag())*a/sin(a)
         # reward ball being farther from drone net
         s += (state.ball.location-ENEMY_NET).mag()
