@@ -1,4 +1,4 @@
-import heapq
+from heapq import nlargest
 
 ### THIS FILE CONTAINS CLASSES FOR AN ARBITRARY DECISION TREE
 
@@ -8,12 +8,20 @@ class DecisionTree:
         a list of decisions initially available. Brancher is a function that
         takes a packet (1st arg) and a decision (2nd arg) and returns an updated
         packet. Pruner is a function that takes a packet and returns a score value."""
+        # public properties
         self.root = Node(root)
-        self.top = [self.root]
+        self.top = (self.root,)
         self.decisions = decision_list
         self.brancher = brancher
         self.pruner = pruner
-        self.npruner = lambda node: node.score
+        # private nodewise methods
+        def nbrancher(node, key):
+            value = self.brancher(node.value, key)
+            return Node(value, key, node, self.pruner(value) + node.score)
+        def npruner(node):
+            return node.score
+        self.nbrancher = nbrancher
+        self.npruner = npruner
     def __str__(self):
         # recreate pruned tree
         current = {node: {} for node in self.top}
@@ -27,27 +35,28 @@ class DecisionTree:
             upper = {}
         # return tree representation
         return str(current)
+    @property
     def is_determined(self):
         """Returns if there is only one viable decision from the root."""
-        return len(set([node.initial_branch() for node in self.top])) <= 1
+        return len(set([node.initial_branch for node in self.top])) <= 1
+    @property
+    def ideal_path(self):
+        """Returns the ideal traversal path."""
+        return max(self.top, key=self.npruner).path
+    @property
+    def ideal_key(self):
+        """Returns the first key of the ideal traversal path."""
+        return max(self.top, key=self.npruner).initial_branch.key
     def branch(self):
         """Branches the topmost nodes."""
-        self.top = [(self.brancher(n.value, d), d, n) \
-            for n in self.top for d in self.decisions]
-        self.top = [Node(s,d,n,self.pruner(s)+n.score) for s,d,n in self.top]
+        self.top = tuple(self.nbrancher(n,d) for n in self.top for d in self.decisions)
     def prune(self,n):
         """Prunes the topmost nodes to have a maximum count of n."""
         if len(self.top) > n:
-            self.top = heapq.nlargest(n, self.top, key=self.npruner)
+            self.top = tuple(nlargest(n, self.top, key=self.npruner))
     def reduce(self):
         """Reduces the decision list available during branching."""
-        self.decisions = [n.initial_branch().key for n in self.top]
-    def ideal_path(self):
-        """Returns the ideal traversal path."""
-        return max(self.top, key=self.npruner).path()
-    def ideal_key(self):
-        """Returns the first key of the ideal traversal path."""
-        return max(self.top, key=self.npruner).initial_branch().key
+        self.decisions = [n.initial_branch.key for n in self.top]
 
 class Node:
     def __init__(self, value, key=None, parent=None, score=0):
@@ -62,17 +71,11 @@ class Node:
         return str(self.value)
     def __repr__(self):
         return str(self)
+    @property
     def initial_branch(self):
         """Returns the first node from the root to get to the current node."""
-        if self.parent.parent == None:
-            # parent is the root node
-            return self
-        # parent is not the root node
-        return self.parent.initial_branch()
+        return self if self.parent.parent is None else self.parent.initial_branch
+    @property
     def path(self):
         """Returns a list of the values leading up to this node."""
-        if self.parent == None:
-            # return root path
-            return [self.value]
-        # return node path
-        return self.parent.path() + [self.value]
+        return [self.value] if self.parent is None else self.parent.path+[self.value]
